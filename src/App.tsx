@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import RecurringPaymentsList from './components/RecurringPaymentsList';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
+import Debug from './debug';
 import { User } from '@supabase/supabase-js';
 import { LogOut } from 'lucide-react';
 
@@ -13,6 +14,11 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Debug mode - mostrar variables de entorno si no están definidas
+  if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    return <Debug />;
+  }
 
   useEffect(() => {
     // Obtener la sesión inicial
