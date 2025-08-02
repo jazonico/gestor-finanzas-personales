@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/database';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -14,7 +13,7 @@ console.log('🔍 Debug Supabase Config:', {
   env: import.meta.env.MODE
 });
 
-export const supabase = createClient<Database>(
+export const supabase = createClient(
   supabaseUrl || fallbackUrl,
   supabaseAnonKey || fallbackKey,
   {
@@ -22,6 +21,11 @@ export const supabase = createClient<Database>(
       persistSession: true,
       autoRefreshToken: true,
     },
+    global: {
+      headers: {
+        'X-Client-Info': 'gestor-finanzas-personales'
+      }
+    }
   }
 );
 
