@@ -1,6 +1,6 @@
 # 💰 Gestor de Finanzas Personales
 
-Una aplicación web moderna y completa para gestionar tus finanzas personales, construida con React, TypeScript y Tailwind CSS. Perfecta para desplegar en Netlify.
+Una aplicación web moderna y completa para gestionar tus finanzas personales, construida con React, TypeScript, Tailwind CSS y Supabase. Perfecta para desplegar en Netlify.
 
 ## ✨ Características Principales
 
@@ -29,34 +29,51 @@ Una aplicación web moderna y completa para gestionar tus finanzas personales, c
 - Comparativas mes a mes
 - Indicadores de crecimiento/decrecimiento
 
+### 🔐 Autenticación y Seguridad
+- Sistema de autenticación completo con Supabase
+- Datos seguros y privados por usuario
+- Row Level Security (RLS) implementado
+- Sesiones persistentes
+
 ### 🎨 Diseño Moderno
 - Interfaz responsive y mobile-first
 - Tema claro y profesional
 - Iconos intuitivos
 - Experiencia de usuario fluida
 
-## 🚀 Despliegue en Netlify
+## 🚀 Configuración y Despliegue
 
-### Opción 1: Despliegue Directo
-1. Haz fork de este repositorio
-2. Conecta tu cuenta de Netlify con GitHub
-3. Selecciona este repositorio
-4. Netlify detectará automáticamente la configuración de Vite
-5. ¡Despliega!
+### 📋 Prerrequisitos
+- Node.js 18+
+- Cuenta en [Supabase](https://supabase.com)
+- Cuenta en [Netlify](https://netlify.com) (opcional)
 
-### Opción 2: Despliegue Manual
-1. Clona el repositorio
-2. Instala las dependencias: `npm install`
-3. Construye la aplicación: `npm run build`
-4. Sube la carpeta `dist` a Netlify
+### 🗄️ Configuración de Supabase
 
-## 🛠️ Desarrollo Local
+#### 1. Crear Proyecto en Supabase
+1. Ve a [Supabase](https://supabase.com) y crea una cuenta
+2. Crea un nuevo proyecto
+3. Anota la **URL del proyecto** y la **clave anónima**
 
-### Prerrequisitos
-- Node.js 18+ 
-- npm o yarn
+#### 2. Configurar Base de Datos
+1. Ve al **SQL Editor** en tu dashboard de Supabase
+2. Copia y ejecuta el contenido del archivo `supabase-schema.sql`
+3. Esto creará todas las tablas, políticas de seguridad e índices necesarios
 
-### Instalación
+#### 3. Configurar Variables de Entorno
+1. Copia el archivo `.env.example` a `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Completa las variables con tus datos de Supabase:
+   ```env
+   VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+   VITE_SUPABASE_ANON_KEY=tu_clave_anonima_aqui
+   ```
+
+### 🛠️ Desarrollo Local
+
 ```bash
 # Clonar el repositorio
 git clone <url-del-repositorio>
@@ -65,8 +82,32 @@ cd gestor-finanzas-personales
 # Instalar dependencias
 npm install
 
+# Configurar variables de entorno (ver arriba)
+cp .env.example .env
+
 # Iniciar servidor de desarrollo
 npm run dev
+```
+
+### 🌐 Despliegue en Netlify
+
+#### Opción 1: Despliegue Directo desde GitHub
+1. Sube tu código a GitHub
+2. Conecta tu repositorio con Netlify
+3. **Configura las variables de entorno** en Netlify:
+   - Ve a Site settings > Environment variables
+   - Agrega `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
+4. Netlify detectará automáticamente la configuración de Vite
+5. ¡Deploy automático!
+
+#### Opción 2: Deploy Manual
+```bash
+# Construir la aplicación
+npm run build
+
+# Subir la carpeta 'dist' a Netlify
+# O usar Netlify CLI:
+npx netlify deploy --prod --dir=dist
 ```
 
 ### Scripts Disponibles
@@ -77,16 +118,19 @@ npm run dev
 
 ## 💾 Almacenamiento de Datos
 
-La aplicación utiliza **localStorage** del navegador para persistir los datos:
-- ✅ No requiere base de datos externa
-- ✅ Funciona completamente offline
-- ✅ Datos privados y seguros
-- ✅ Compatible con todos los navegadores modernos
+La aplicación utiliza **Supabase** como base de datos:
+- ✅ Base de datos PostgreSQL en la nube
+- ✅ Autenticación integrada y segura
+- ✅ Row Level Security (RLS)
+- ✅ Sincronización en tiempo real
+- ✅ Backups automáticos
+- ✅ Acceso desde cualquier dispositivo
 
 ### Datos Almacenados
-- Transacciones (ingresos y gastos)
-- Pagos recurrentes configurados
-- Configuraciones de la aplicación
+- **Perfiles de usuario** (nombre, email, avatar)
+- **Transacciones** (ingresos y gastos con categorización)
+- **Pagos recurrentes** configurados
+- **Metadatos** de auditoría (fechas de creación/actualización)
 
 ## 📱 Categorías Predefinidas
 
@@ -112,6 +156,7 @@ La aplicación utiliza **localStorage** del navegador para persistir los datos:
 
 ## 🔧 Tecnologías Utilizadas
 
+### Frontend
 - **React 18** - Framework de UI
 - **TypeScript** - Tipado estático
 - **Vite** - Build tool y dev server
@@ -120,6 +165,12 @@ La aplicación utiliza **localStorage** del navegador para persistir los datos:
 - **Lucide React** - Iconos modernos
 - **date-fns** - Manejo de fechas
 
+### Backend
+- **Supabase** - Backend as a Service
+- **PostgreSQL** - Base de datos
+- **Row Level Security** - Seguridad a nivel de fila
+- **Autenticación JWT** - Sistema de autenticación
+
 ## 🌟 Funcionalidades Avanzadas
 
 ### Automatización Inteligente
@@ -127,10 +178,16 @@ La aplicación utiliza **localStorage** del navegador para persistir los datos:
 - Detección de transacciones duplicadas
 - Cálculos automáticos de balances y porcentajes
 
+### Seguridad
+- Autenticación robusta con Supabase Auth
+- Políticas de seguridad a nivel de base de datos
+- Datos encriptados en tránsito y en reposo
+- Sesiones seguras con tokens JWT
+
 ### Experiencia de Usuario
 - Formularios con validación en tiempo real
-- Confirmaciones para acciones destructivas
 - Estados de carga y feedback visual
+- Manejo de errores elegante
 - Navegación intuitiva entre secciones
 
 ### Responsive Design
@@ -158,10 +215,28 @@ La aplicación utiliza **localStorage** del navegador para persistir los datos:
 
 ## 🔒 Privacidad y Seguridad
 
-- **Datos locales**: Toda la información se almacena en tu navegador
-- **Sin tracking**: No se recopilan datos personales
-- **Sin servidores**: Funciona completamente en el cliente
+- **Datos seguros**: Almacenados en Supabase con encriptación
+- **Acceso controlado**: Row Level Security garantiza privacidad
+- **Autenticación robusta**: Sistema de autenticación completo
+- **Sin tracking**: No se recopilan datos personales adicionales
 - **Control total**: Tú tienes el control absoluto de tus datos
+
+## 🚨 Solución de Problemas
+
+### Error de conexión a Supabase
+- Verifica que las variables de entorno estén configuradas correctamente
+- Asegúrate de que el proyecto de Supabase esté activo
+- Revisa que las políticas RLS estén configuradas
+
+### Error de autenticación
+- Verifica que el email sea válido
+- La contraseña debe tener al menos 6 caracteres
+- Revisa la configuración de Auth en Supabase
+
+### Datos no se cargan
+- Verifica la conexión a internet
+- Revisa la consola del navegador para errores
+- Asegúrate de estar autenticado
 
 ## 🤝 Contribuir
 
@@ -183,7 +258,8 @@ Si encuentras algún problema o tienes sugerencias:
 - Abre un issue en GitHub
 - Describe el problema detalladamente
 - Incluye pasos para reproducirlo
+- Menciona tu configuración (navegador, SO, etc.)
 
 ---
 
-**¡Toma el control de tus finanzas personales hoy mismo! 💪** 
+**¡Toma el control de tus finanzas personales con la seguridad de Supabase! 💪** 

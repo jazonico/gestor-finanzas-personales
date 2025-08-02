@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Transaction, RecurringPayment, MonthlyData, FinancialSummary, CategorySummary } from '../types';
-import { storageUtils } from '../utils/storage';
+import { supabaseStorage } from '../utils/supabaseStorage';
 import { dateUtils } from '../utils/dateUtils';
 import { getCategoryColor } from '../utils/categories';
 import { isSameMonth, startOfYear, endOfYear } from 'date-fns';
@@ -10,21 +10,28 @@ export const useFinancialData = () => {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Cargar datos iniciales
   useEffect(() => {
     const loadData = async () => {
       try {
-        const storedTransactions = storageUtils.getTransactions();
-        const storedRecurringPayments = storageUtils.getRecurringPayments();
+        setLoading(true);
+        setError(null);
+        
+        const [storedTransactions, storedRecurringPayments] = await Promise.all([
+          supabaseStorage.getTransactions(),
+          supabaseStorage.getRecurringPayments()
+        ]);
         
         setTransactions(storedTransactions);
         setRecurringPayments(storedRecurringPayments);
         
         // Procesar pagos recurrentes automáticos
         await processRecurringPayments(storedRecurringPayments, storedTransactions);
-      } catch (error) {
-        console.error('Error cargando datos:', error);
+      } catch (err: any) {
+        console.error('Error cargando datos:', err);
+        setError(err.message || 'Error al cargar los datos');
       } finally {
         setLoading(false);
       }
@@ -35,98 +42,114 @@ export const useFinancialData = () => {
 
   // Procesar pagos recurrentes
   const processRecurringPayments = async (payments: RecurringPayment[], existingTransactions: Transaction[]) => {
-    const today = new Date();
-    const newTransactions: Transaction[] = [];
+    try {
+      const today = new Date();
+      const newTransactions: Transaction[] = [];
 
-    payments.forEach(payment => {
-      if (!payment.isActive) return;
+      for (const payment of payments) {
+        if (!payment.isActive) continue;
 
-      // Verificar si ya existe una transacción para este pago en el mes actual
-      const existingTransaction = existingTransactions.find(t => 
-        t.isRecurring && 
-        t.category === payment.category &&
-        t.amount === payment.amount &&
-        isSameMonth(t.date, today)
-      );
+        // Verificar si ya existe una transacción para este pago en el mes actual
+        const existingTransaction = existingTransactions.find(t => 
+          t.isRecurring && 
+          t.category === payment.category &&
+          t.amount === payment.amount &&
+          isSameMonth(t.date, today)
+        );
 
-      if (!existingTransaction && today.getDate() >= payment.dayOfMonth) {
-        const recurringTransaction: Transaction = {
-          id: dateUtils.generateId(),
-          type: payment.type,
-          category: payment.category,
-          amount: payment.amount,
-          description: `${payment.name} (Pago automático)`,
-          date: new Date(today.getFullYear(), today.getMonth(), payment.dayOfMonth),
-          isRecurring: true,
-          recurringDay: payment.dayOfMonth
-        };
+        if (!existingTransaction && today.getDate() >= payment.dayOfMonth) {
+          const recurringTransaction: Omit<Transaction, 'id'> = {
+            type: payment.type,
+            category: payment.category,
+            amount: payment.amount,
+            description: `${payment.name} (Pago automático)`,
+            date: new Date(today.getFullYear(), today.getMonth(), payment.dayOfMonth),
+            isRecurring: true,
+            recurringDay: payment.dayOfMonth
+          };
 
-        newTransactions.push(recurringTransaction);
+          const newTransaction = await supabaseStorage.addTransaction(recurringTransaction);
+          newTransactions.push(newTransaction);
+        }
       }
-    });
 
-    if (newTransactions.length > 0) {
-      const updatedTransactions = [...existingTransactions, ...newTransactions];
-      setTransactions(updatedTransactions);
-      storageUtils.saveTransactions(updatedTransactions);
+      if (newTransactions.length > 0) {
+        setTransactions(prev => [...prev, ...newTransactions]);
+      }
+    } catch (err) {
+      console.error('Error procesando pagos recurrentes:', err);
     }
   };
 
   // Agregar transacción
-  const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: dateUtils.generateId(),
-    };
-
-    const updatedTransactions = [...transactions, newTransaction];
-    setTransactions(updatedTransactions);
-    storageUtils.addTransaction(newTransaction);
-  }, [transactions]);
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
+    try {
+      const newTransaction = await supabaseStorage.addTransaction(transaction);
+      setTransactions(prev => [newTransaction, ...prev]);
+      return newTransaction;
+    } catch (err: any) {
+      setError(err.message || 'Error al agregar transacción');
+      throw err;
+    }
+  }, []);
 
   // Actualizar transacción
-  const updateTransaction = useCallback((id: string, updatedTransaction: Partial<Transaction>) => {
-    const updatedTransactions = transactions.map(t => 
-      t.id === id ? { ...t, ...updatedTransaction } : t
-    );
-    setTransactions(updatedTransactions);
-    storageUtils.updateTransaction(id, updatedTransaction);
-  }, [transactions]);
+  const updateTransaction = useCallback(async (id: string, updatedTransaction: Partial<Transaction>) => {
+    try {
+      const updated = await supabaseStorage.updateTransaction(id, updatedTransaction);
+      setTransactions(prev => prev.map(t => t.id === id ? updated : t));
+      return updated;
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar transacción');
+      throw err;
+    }
+  }, []);
 
   // Eliminar transacción
-  const deleteTransaction = useCallback((id: string) => {
-    const updatedTransactions = transactions.filter(t => t.id !== id);
-    setTransactions(updatedTransactions);
-    storageUtils.deleteTransaction(id);
-  }, [transactions]);
+  const deleteTransaction = useCallback(async (id: string) => {
+    try {
+      await supabaseStorage.deleteTransaction(id);
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar transacción');
+      throw err;
+    }
+  }, []);
 
   // Agregar pago recurrente
-  const addRecurringPayment = useCallback((payment: Omit<RecurringPayment, 'id'>) => {
-    const newPayment: RecurringPayment = {
-      ...payment,
-      id: dateUtils.generateId(),
-    };
-
-    const updatedPayments = [...recurringPayments, newPayment];
-    setRecurringPayments(updatedPayments);
-    storageUtils.addRecurringPayment(newPayment);
-  }, [recurringPayments]);
+  const addRecurringPayment = useCallback(async (payment: Omit<RecurringPayment, 'id'>) => {
+    try {
+      const newPayment = await supabaseStorage.addRecurringPayment(payment);
+      setRecurringPayments(prev => [...prev, newPayment]);
+      return newPayment;
+    } catch (err: any) {
+      setError(err.message || 'Error al agregar pago recurrente');
+      throw err;
+    }
+  }, []);
 
   // Actualizar pago recurrente
-  const updateRecurringPayment = useCallback((id: string, updatedPayment: Partial<RecurringPayment>) => {
-    const updatedPayments = recurringPayments.map(p => 
-      p.id === id ? { ...p, ...updatedPayment } : p
-    );
-    setRecurringPayments(updatedPayments);
-    storageUtils.updateRecurringPayment(id, updatedPayment);
-  }, [recurringPayments]);
+  const updateRecurringPayment = useCallback(async (id: string, updatedPayment: Partial<RecurringPayment>) => {
+    try {
+      const updated = await supabaseStorage.updateRecurringPayment(id, updatedPayment);
+      setRecurringPayments(prev => prev.map(p => p.id === id ? updated : p));
+      return updated;
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar pago recurrente');
+      throw err;
+    }
+  }, []);
 
   // Eliminar pago recurrente
-  const deleteRecurringPayment = useCallback((id: string) => {
-    const updatedPayments = recurringPayments.filter(p => p.id !== id);
-    setRecurringPayments(updatedPayments);
-    storageUtils.deleteRecurringPayment(id);
-  }, [recurringPayments]);
+  const deleteRecurringPayment = useCallback(async (id: string) => {
+    try {
+      await supabaseStorage.deleteRecurringPayment(id);
+      setRecurringPayments(prev => prev.filter(p => p.id !== id));
+    } catch (err: any) {
+      setError(err.message || 'Error al eliminar pago recurrente');
+      throw err;
+    }
+  }, []);
 
   // Obtener datos del mes actual
   const getCurrentMonthData = useCallback((): MonthlyData => {
@@ -226,11 +249,32 @@ export const useFinancialData = () => {
     };
   }, [transactions, currentMonth, getCurrentMonthData]);
 
+  // Función para refrescar datos
+  const refreshData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [newTransactions, newRecurringPayments] = await Promise.all([
+        supabaseStorage.getTransactions(),
+        supabaseStorage.getRecurringPayments()
+      ]);
+      
+      setTransactions(newTransactions);
+      setRecurringPayments(newRecurringPayments);
+    } catch (err: any) {
+      setError(err.message || 'Error al refrescar datos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     transactions,
     recurringPayments,
     currentMonth,
     loading,
+    error,
     setCurrentMonth,
     addTransaction,
     updateTransaction,
@@ -240,5 +284,6 @@ export const useFinancialData = () => {
     deleteRecurringPayment,
     getCurrentMonthData,
     getFinancialSummary,
+    refreshData,
   };
 }; 

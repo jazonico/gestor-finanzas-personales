@@ -7,15 +7,17 @@ interface FinancialContextType {
   recurringPayments: RecurringPayment[];
   currentMonth: Date;
   loading: boolean;
+  error: string | null;
   setCurrentMonth: (date: Date) => void;
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  updateTransaction: (id: string, updatedTransaction: Partial<Transaction>) => void;
-  deleteTransaction: (id: string) => void;
-  addRecurringPayment: (payment: Omit<RecurringPayment, 'id'>) => void;
-  updateRecurringPayment: (id: string, updatedPayment: Partial<RecurringPayment>) => void;
-  deleteRecurringPayment: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction>;
+  updateTransaction: (id: string, updatedTransaction: Partial<Transaction>) => Promise<Transaction>;
+  deleteTransaction: (id: string) => Promise<void>;
+  addRecurringPayment: (payment: Omit<RecurringPayment, 'id'>) => Promise<RecurringPayment>;
+  updateRecurringPayment: (id: string, updatedPayment: Partial<RecurringPayment>) => Promise<RecurringPayment>;
+  deleteRecurringPayment: (id: string) => Promise<void>;
   getCurrentMonthData: () => MonthlyData;
   getFinancialSummary: () => FinancialSummary;
+  refreshData: () => Promise<void>;
 }
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined);

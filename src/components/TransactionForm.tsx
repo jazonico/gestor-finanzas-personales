@@ -27,6 +27,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   const categories = formData.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
@@ -53,29 +54,38 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    const transactionData = {
-      type: formData.type,
-      category: formData.category,
-      amount: Number(formData.amount),
-      description: formData.description,
-      date: new Date(formData.date),
-    };
+    setLoading(true);
+    setErrors({});
 
-    if (editingTransaction) {
-      updateTransaction(editingTransaction.id, transactionData);
-    } else {
-      addTransaction(transactionData);
+    try {
+      const transactionData = {
+        type: formData.type,
+        category: formData.category,
+        amount: Number(formData.amount),
+        description: formData.description,
+        date: new Date(formData.date),
+      };
+
+      if (editingTransaction) {
+        await updateTransaction(editingTransaction.id, transactionData);
+      } else {
+        await addTransaction(transactionData);
+      }
+
+      onClose();
+      resetForm();
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Error al guardar la transacción' });
+    } finally {
+      setLoading(false);
     }
-
-    onClose();
-    resetForm();
   };
 
   const resetForm = () => {
@@ -106,12 +116,20 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
+            disabled={loading}
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Error general */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-700 text-sm">{errors.submit}</p>
+            </div>
+          )}
+
           {/* Tipo de transacción */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -125,6 +143,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   checked={formData.type === 'expense'}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as 'expense', category: '' })}
                   className="mr-2"
+                  disabled={loading}
                 />
                 <span className="text-red-600">Gasto</span>
               </label>
@@ -135,6 +154,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   checked={formData.type === 'income'}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as 'income', category: '' })}
                   className="mr-2"
+                  disabled={loading}
                 />
                 <span className="text-green-600">Ingreso</span>
               </label>
@@ -150,6 +170,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className={`input-field ${errors.category ? 'border-red-500' : ''}`}
+              disabled={loading}
             >
               <option value="">Selecciona una categoría</option>
               {categories.map((category) => (
@@ -176,6 +197,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
               className={`input-field ${errors.amount ? 'border-red-500' : ''}`}
               placeholder="0.00"
+              disabled={loading}
             />
             {errors.amount && (
               <p className="text-red-500 text-xs mt-1">{errors.amount}</p>
@@ -193,6 +215,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className={`input-field ${errors.description ? 'border-red-500' : ''}`}
               placeholder="Descripción de la transacción"
+              disabled={loading}
             />
             {errors.description && (
               <p className="text-red-500 text-xs mt-1">{errors.description}</p>
@@ -209,6 +232,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               className={`input-field ${errors.date ? 'border-red-500' : ''}`}
+              disabled={loading}
             />
             {errors.date && (
               <p className="text-red-500 text-xs mt-1">{errors.date}</p>
@@ -221,14 +245,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               type="button"
               onClick={handleClose}
               className="btn-secondary flex-1"
+              disabled={loading}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="btn-primary flex-1"
+              className={`btn-primary flex-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={loading}
             >
-              {editingTransaction ? 'Actualizar' : 'Agregar'}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {editingTransaction ? 'Actualizando...' : 'Agregando...'}
+                </div>
+              ) : (
+                editingTransaction ? 'Actualizar' : 'Agregar'
+              )}
             </button>
           </div>
         </form>
