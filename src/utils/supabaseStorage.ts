@@ -1,12 +1,8 @@
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 import { Transaction, RecurringPayment } from '../types';
-import { Database } from '../types/database';
-
-type TransactionRow = Database['public']['Tables']['transactions']['Row'];
-type RecurringPaymentRow = Database['public']['Tables']['recurring_payments']['Row'];
 
 // Funciones de conversión entre tipos internos y de base de datos
-const convertFromDbTransaction = (dbTransaction: TransactionRow): Transaction => ({
+const convertFromDbTransaction = (dbTransaction: any): Transaction => ({
   id: dbTransaction.id,
   type: dbTransaction.type,
   category: dbTransaction.category,
@@ -28,7 +24,7 @@ const convertToDbTransaction = (transaction: Omit<Transaction, 'id'>, userId: st
   recurring_day: transaction.recurringDay || null,
 });
 
-const convertFromDbRecurringPayment = (dbPayment: RecurringPaymentRow): RecurringPayment => ({
+const convertFromDbRecurringPayment = (dbPayment: any): RecurringPayment => ({
   id: dbPayment.id,
   name: dbPayment.name,
   amount: dbPayment.amount,
@@ -51,12 +47,14 @@ const convertToDbRecurringPayment = (payment: Omit<RecurringPayment, 'id'>, user
 export const supabaseStorage = {
   // Funciones de autenticación
   getCurrentUser: async () => {
+    const supabase = getSupabase();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;
     return user;
   },
 
   signUp: async (email: string, password: string, fullName?: string) => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -71,6 +69,7 @@ export const supabaseStorage = {
   },
 
   signIn: async (email: string, password: string) => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -80,6 +79,7 @@ export const supabaseStorage = {
   },
 
   signOut: async () => {
+    const supabase = getSupabase();
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
@@ -89,6 +89,7 @@ export const supabaseStorage = {
     const user = await supabaseStorage.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
@@ -104,6 +105,7 @@ export const supabaseStorage = {
     if (!user) throw new Error('Usuario no autenticado');
 
     const dbTransaction = convertToDbTransaction(transaction, user.id);
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .insert(dbTransaction)
@@ -127,6 +129,7 @@ export const supabaseStorage = {
     if (updates.isRecurring !== undefined) dbUpdates.is_recurring = updates.isRecurring;
     if (updates.recurringDay !== undefined) dbUpdates.recurring_day = updates.recurringDay;
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .update(dbUpdates)
@@ -143,6 +146,7 @@ export const supabaseStorage = {
     const user = await supabaseStorage.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -157,6 +161,7 @@ export const supabaseStorage = {
     const user = await supabaseStorage.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('recurring_payments')
       .select('*')
@@ -172,6 +177,7 @@ export const supabaseStorage = {
     if (!user) throw new Error('Usuario no autenticado');
 
     const dbPayment = convertToDbRecurringPayment(payment, user.id);
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('recurring_payments')
       .insert(dbPayment)
@@ -194,6 +200,7 @@ export const supabaseStorage = {
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.type) dbUpdates.type = updates.type;
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('recurring_payments')
       .update(dbUpdates)
@@ -210,6 +217,7 @@ export const supabaseStorage = {
     const user = await supabaseStorage.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('recurring_payments')
       .delete()
@@ -221,6 +229,7 @@ export const supabaseStorage = {
 
   // Función para crear/actualizar perfil
   upsertProfile: async (userId: string, email: string, fullName?: string) => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('profiles')
       .upsert({
