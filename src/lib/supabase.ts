@@ -9,36 +9,27 @@ console.log('🔍 Debug Supabase Config:', {
   env: import.meta.env.MODE
 });
 
-let supabaseInstance: SupabaseClient | null = null;
-
-// Función para obtener la instancia de Supabase de forma lazy
-export const getSupabase = () => {
-  if (!supabaseInstance) {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration is missing');
-    }
-    
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    });
-  }
-  return supabaseInstance;
-};
-
 // Función para verificar si Supabase está configurado correctamente
 export const isSupabaseConfigured = () => {
   return !!(supabaseUrl && supabaseAnonKey);
 };
 
-// Export para compatibilidad hacia atrás
-export const supabase = {
-  get auth() {
-    return getSupabase().auth;
-  },
-  from(table: string) {
-    return getSupabase().from(table);
+// Crear la instancia de Supabase directamente si está configurada
+let supabaseInstance: SupabaseClient | null = null;
+
+if (isSupabaseConfigured()) {
+  try {
+    supabaseInstance = createClient(supabaseUrl!, supabaseAnonKey!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
+    console.log('✅ Supabase client created successfully');
+  } catch (error) {
+    console.error('❌ Error creating Supabase client:', error);
   }
-}; 
+}
+
+// Export directo de la instancia
+export const supabase = supabaseInstance!; 
