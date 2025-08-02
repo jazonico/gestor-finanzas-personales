@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FinancialProvider } from './context/FinancialContext';
-import { supabase } from './lib/supabase';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import RecurringPaymentsList from './components/RecurringPaymentsList';
@@ -16,16 +16,21 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   // Debug mode - mostrar variables de entorno si no están definidas
-  if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  if (!isSupabaseConfigured()) {
     return <Debug />;
   }
 
   useEffect(() => {
     // Obtener la sesión inicial
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      setLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     getInitialSession();
