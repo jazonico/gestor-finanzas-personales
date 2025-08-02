@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
-    "@supabase/supabase-js": "^2.53.0",
+    "@supabase/supabase-js": "^2.39.7",
     "chart.js": "^4.4.0",
     "date-fns": "^2.30.0",
     "lucide-react": "^0.294.0",

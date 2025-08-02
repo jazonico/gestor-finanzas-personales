@@ -1,26 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Variables de configuración
-const getSupabaseConfig = () => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  console.log('🔍 Debug Supabase Config:', {
-    url: supabaseUrl || 'undefined',
-    key: supabaseAnonKey ? 'definida' : 'undefined',
-    env: import.meta.env.MODE
-  });
-  
-  return { supabaseUrl, supabaseAnonKey };
-};
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+console.log('🔍 Debug Supabase Config:', {
+  url: supabaseUrl || 'undefined',
+  key: supabaseAnonKey ? 'definida' : 'undefined',
+  env: import.meta.env.MODE
+});
 
 // Función para verificar si Supabase está configurado correctamente
 export const isSupabaseConfigured = () => {
-  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
   return !!(supabaseUrl && supabaseAnonKey);
 };
 
-// Instancia lazy de Supabase
+// Crear el cliente de Supabase con configuración mínima y estable
 let supabaseInstance: SupabaseClient | null = null;
 
 const createSupabaseClient = (): SupabaseClient => {
@@ -28,19 +22,16 @@ const createSupabaseClient = (): SupabaseClient => {
     return supabaseInstance;
   }
 
-  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
-  
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('❌ Supabase configuration is missing');
   }
 
   try {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    });
+    console.log('🔧 Creating Supabase client...');
+    
+    // Configuración mínima y estable
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+    
     console.log('✅ Supabase client created successfully');
     return supabaseInstance;
   } catch (error) {
@@ -49,16 +40,5 @@ const createSupabaseClient = (): SupabaseClient => {
   }
 };
 
-// Proxy object que crea el cliente solo cuando se accede a él
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    const client = createSupabaseClient();
-    const value = (client as any)[prop];
-    
-    if (typeof value === 'function') {
-      return value.bind(client);
-    }
-    
-    return value;
-  }
-}); 
+// Export directo del cliente
+export const supabase = createSupabaseClient(); 
