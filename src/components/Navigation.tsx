@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Plus, RefreshCw } from 'lucide-react';
+import { BarChart3, Plus, RefreshCw, Users } from 'lucide-react';
 import TransactionForm from './TransactionForm';
 import RecurringPaymentForm from './RecurringPaymentForm';
 
@@ -15,6 +15,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'recurring', label: 'Pagos Recurrentes', icon: RefreshCw },
+    { id: 'shared', label: 'Gastos Compartidos', icon: Users },
   ];
 
   return (

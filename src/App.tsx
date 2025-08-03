@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import RecurringPaymentsList from './components/RecurringPaymentsList';
+import SharedExpenses from './components/SharedExpenses';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
 import Debug from './debug';
@@ -85,6 +86,8 @@ function App() {
             </div>
           </div>
         );
+      case 'shared':
+        return <SharedExpenses />;
       default:
         return <Dashboard />;
     }
