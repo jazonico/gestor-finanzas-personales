@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Calendar, Clock, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+import { Calendar, Clock, CreditCard, TrendingUp, TrendingDown, FileText, AlertTriangle } from 'lucide-react';
 import { useFinancialContext } from '../context/FinancialContext';
 
 interface TimelineEvent {
@@ -8,11 +8,13 @@ interface TimelineEvent {
   title: string;
   description: string;
   amount?: number;
-  type: 'income' | 'expense' | 'recurring' | 'shared';
-  status: 'completed' | 'upcoming' | 'today';
+  type: 'income' | 'expense' | 'recurring' | 'shared' | 'invoice-alert';
+  status: 'completed' | 'upcoming' | 'today' | 'overdue';
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   day: number;
+  priority?: 'low' | 'medium' | 'high';
+  invoiceStatus?: 'pending' | 'completed' | 'overdue';
 }
 
 const MonthlyTimeline: React.FC = () => {
@@ -35,6 +37,80 @@ const MonthlyTimeline: React.FC = () => {
     }).format(amount);
   };
 
+  // Generar alertas de facturas automáticamente
+  const generateInvoiceAlerts = useMemo(() => {
+    const alerts: TimelineEvent[] = [];
+
+    // Alertas de transacciones que requieren factura
+    transactions.forEach(transaction => {
+      if (
+        transaction.requiresInvoice && 
+        transaction.invoiceDueDate &&
+        transaction.invoiceDueDate.getFullYear() === currentMonth.getFullYear() &&
+        transaction.invoiceDueDate.getMonth() === currentMonth.getMonth()
+      ) {
+        const dayOfMonth = transaction.invoiceDueDate.getDate();
+        let status: 'completed' | 'upcoming' | 'today' | 'overdue' = 'upcoming';
+        
+        if (transaction.invoiceStatus === 'completed') {
+          status = 'completed';
+        } else if (isCurrentMonth) {
+          if (dayOfMonth === currentDay) status = 'today';
+          else if (dayOfMonth < currentDay) status = 'overdue';
+        }
+
+        alerts.push({
+          id: `invoice-transaction-${transaction.id}`,
+          date: transaction.invoiceDueDate,
+          title: `Factura: ${transaction.description}`,
+          description: `Fecha límite para hacer la factura - ${transaction.category}`,
+          amount: transaction.amount,
+          type: 'invoice-alert',
+          status,
+          icon: status === 'overdue' ? AlertTriangle : FileText,
+          color: status === 'overdue' ? 'text-red-600' : status === 'completed' ? 'text-green-600' : 'text-orange-600',
+          day: dayOfMonth,
+          priority: status === 'overdue' ? 'high' : 'medium',
+          invoiceStatus: transaction.invoiceStatus,
+        });
+      }
+    });
+
+    // Alertas de pagos recurrentes que requieren factura
+    recurringPayments
+      .filter(payment => payment.isActive && payment.requiresInvoice)
+      .forEach(payment => {
+        const invoiceDueDay = Math.max(1, payment.dayOfMonth - (payment.invoiceDueDaysBefore || 5));
+        const invoiceDueDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), invoiceDueDay);
+        
+        let status: 'completed' | 'upcoming' | 'today' | 'overdue' = 'upcoming';
+        
+        if (payment.invoiceStatus === 'completed') {
+          status = 'completed';
+        } else if (isCurrentMonth) {
+          if (invoiceDueDay === currentDay) status = 'today';
+          else if (invoiceDueDay < currentDay) status = 'overdue';
+        }
+
+        alerts.push({
+          id: `invoice-recurring-${payment.id}`,
+          date: invoiceDueDate,
+          title: `Factura: ${payment.name}`,
+          description: `Fecha límite para hacer la factura - ${payment.category}`,
+          amount: payment.amount,
+          type: 'invoice-alert',
+          status,
+          icon: status === 'overdue' ? AlertTriangle : FileText,
+          color: status === 'overdue' ? 'text-red-600' : status === 'completed' ? 'text-green-600' : 'text-orange-600',
+          day: invoiceDueDay,
+          priority: status === 'overdue' ? 'high' : 'medium',
+          invoiceStatus: payment.invoiceStatus,
+        });
+      });
+
+    return alerts;
+  }, [transactions, recurringPayments, currentMonth, currentDay, isCurrentMonth]);
+
   const timelineEvents = useMemo(() => {
     const events: TimelineEvent[] = [];
 
@@ -45,7 +121,7 @@ const MonthlyTimeline: React.FC = () => {
         transaction.date.getMonth() === currentMonth.getMonth()
       ) {
         const dayOfMonth = transaction.date.getDate();
-        let status: 'completed' | 'upcoming' | 'today' = 'completed';
+        let status: 'completed' | 'upcoming' | 'today' | 'overdue' = 'completed';
         
         if (isCurrentMonth) {
           if (dayOfMonth === currentDay) status = 'today';
@@ -72,7 +148,7 @@ const MonthlyTimeline: React.FC = () => {
       .filter(payment => payment.isActive)
       .forEach(payment => {
         const eventDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), payment.dayOfMonth);
-        let status: 'completed' | 'upcoming' | 'today' = 'upcoming';
+        let status: 'completed' | 'upcoming' | 'today' | 'overdue' = 'upcoming';
         
         if (isCurrentMonth) {
           if (payment.dayOfMonth === currentDay) status = 'today';
@@ -95,9 +171,12 @@ const MonthlyTimeline: React.FC = () => {
         });
       });
 
+    // Agregar alertas de facturas
+    events.push(...generateInvoiceAlerts);
+
     // Ordenar eventos por fecha
     return events.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [transactions, recurringPayments, currentMonth, currentDay, isCurrentMonth, today]);
+  }, [transactions, recurringPayments, currentMonth, currentDay, isCurrentMonth, today, generateInvoiceAlerts]);
 
   const formatMonth = (date: Date) => {
     return new Intl.DateTimeFormat('es-ES', {
@@ -126,6 +205,19 @@ const MonthlyTimeline: React.FC = () => {
   const getCurrentDayPosition = () => {
     if (!isCurrentMonth) return 0;
     return getPositionPercentage(currentDay);
+  };
+
+  // Función para obtener el color del punto basado en los eventos del día
+  const getDayPointColor = (dayEvents: TimelineEvent[]) => {
+    const hasOverdue = dayEvents.some(e => e.status === 'overdue');
+    const hasToday = dayEvents.some(e => e.status === 'today');
+    const hasInvoiceAlert = dayEvents.some(e => e.type === 'invoice-alert' && e.status !== 'completed');
+    
+    if (hasOverdue) return 'bg-red-500';
+    if (hasToday) return 'bg-orange-500';
+    if (hasInvoiceAlert) return 'bg-yellow-500';
+    if (dayEvents.some(e => e.status === 'completed')) return 'bg-green-500';
+    return 'bg-blue-400';
   };
 
   if (timelineEvents.length === 0) {
@@ -207,6 +299,8 @@ const MonthlyTimeline: React.FC = () => {
           const position = getPositionPercentage(dayNum);
           const primaryEvent = dayEvents[0]; // Evento principal para mostrar
           const hasMultipleEvents = dayEvents.length > 1;
+          const hasInvoiceAlerts = dayEvents.some(e => e.type === 'invoice-alert');
+          const hasOverdueInvoices = dayEvents.some(e => e.type === 'invoice-alert' && e.status === 'overdue');
 
           return (
             <div
@@ -215,16 +309,20 @@ const MonthlyTimeline: React.FC = () => {
               style={{ left: `${position}%`, top: '-20px' }}
             >
               {/* Punto del evento */}
-              <div className={`relative w-6 h-6 rounded-full border-3 border-white shadow-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110 ${
-                primaryEvent.status === 'completed' ? 'bg-green-500' :
-                primaryEvent.status === 'today' ? 'bg-orange-500' : 'bg-blue-400'
-              }`}>
+              <div className={`relative w-6 h-6 rounded-full border-3 border-white shadow-lg flex items-center justify-center transition-all duration-200 group-hover:scale-110 ${getDayPointColor(dayEvents)}`}>
                 <primaryEvent.icon className="w-3 h-3 text-white" />
                 
                 {/* Indicador de múltiples eventos */}
                 {hasMultipleEvents && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full border border-white text-xs flex items-center justify-center">
                     <span className="text-white text-xs font-bold">{dayEvents.length}</span>
+                  </div>
+                )}
+
+                {/* Indicador de alerta de factura */}
+                {hasInvoiceAlerts && (
+                  <div className={`absolute -bottom-1 -left-1 w-3 h-3 rounded-full border border-white ${hasOverdueInvoices ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}`}>
+                    <FileText className="w-2 h-2 text-white" />
                   </div>
                 )}
               </div>
@@ -236,19 +334,39 @@ const MonthlyTimeline: React.FC = () => {
                   {dayEvents.map((event, index) => (
                     <div key={event.id} className={`${index > 0 ? 'mt-2 pt-2 border-t border-gray-600' : ''}`}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium">{event.title}</span>
+                        <div className="flex items-center space-x-1">
+                          <event.icon className="w-3 h-3" />
+                          <span className="text-sm font-medium">{event.title}</span>
+                          {event.type === 'invoice-alert' && event.status === 'overdue' && (
+                            <span className="text-xs bg-red-500 text-white px-1 rounded">VENCIDA</span>
+                          )}
+                          {event.type === 'invoice-alert' && event.status === 'today' && (
+                            <span className="text-xs bg-orange-500 text-white px-1 rounded">HOY</span>
+                          )}
+                        </div>
                         {event.amount && (
                           <span className={`text-sm font-bold ${
-                            event.type === 'income' ? 'text-green-400' : 'text-red-400'
+                            event.type === 'income' ? 'text-green-400' : 
+                            event.type === 'invoice-alert' ? 'text-yellow-400' : 'text-red-400'
                           }`}>
-                            {event.type === 'income' ? '+' : '-'}{formatCurrency(event.amount)}
+                            {event.type === 'income' ? '+' : event.type === 'invoice-alert' ? '📄' : '-'}{event.type !== 'invoice-alert' ? formatCurrency(event.amount) : formatCurrency(event.amount)}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-gray-300">{event.description}</p>
-                      {event.status === 'upcoming' && isCurrentMonth && (
+                      {event.status === 'upcoming' && isCurrentMonth && event.type !== 'invoice-alert' && (
                         <p className="text-xs text-blue-300 mt-1">
                           Faltan {dayNum - currentDay} días
+                        </p>
+                      )}
+                      {event.type === 'invoice-alert' && event.status === 'overdue' && (
+                        <p className="text-xs text-red-300 mt-1">
+                          ⚠️ Factura vencida hace {currentDay - dayNum} días
+                        </p>
+                      )}
+                      {event.type === 'invoice-alert' && event.status === 'upcoming' && isCurrentMonth && (
+                        <p className="text-xs text-yellow-300 mt-1">
+                          📅 Hacer factura en {dayNum - currentDay} días
                         </p>
                       )}
                     </div>
@@ -266,7 +384,7 @@ const MonthlyTimeline: React.FC = () => {
       </div>
 
       {/* Leyenda */}
-      <div className="flex items-center justify-center space-x-6 mb-4">
+      <div className="flex items-center justify-center space-x-4 mb-4 flex-wrap">
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           <span className="text-xs text-gray-600">Completado</span>
@@ -280,6 +398,14 @@ const MonthlyTimeline: React.FC = () => {
           <span className="text-xs text-gray-600">Próximo</span>
         </div>
         <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+          <span className="text-xs text-gray-600">Factura pendiente</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+          <span className="text-xs text-gray-600">Factura vencida</span>
+        </div>
+        <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
           <span className="text-xs text-gray-600">Múltiples eventos</span>
         </div>
@@ -287,7 +413,7 @@ const MonthlyTimeline: React.FC = () => {
 
       {/* Resumen */}
       <div className="pt-4 border-t border-gray-200">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-4 text-center">
           <div>
             <p className="text-sm text-gray-600">Completados</p>
             <p className="text-lg font-semibold text-green-600">
@@ -304,6 +430,12 @@ const MonthlyTimeline: React.FC = () => {
             <p className="text-sm text-gray-600">Próximos</p>
             <p className="text-lg font-semibold text-blue-600">
               {timelineEvents.filter(e => e.status === 'upcoming').length}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Facturas Vencidas</p>
+            <p className="text-lg font-semibold text-red-600">
+              {timelineEvents.filter(e => e.type === 'invoice-alert' && e.status === 'overdue').length}
             </p>
           </div>
         </div>

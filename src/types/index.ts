@@ -7,6 +7,11 @@ export interface Transaction {
   date: Date;
   isRecurring?: boolean;
   recurringDay?: number; // día del mes para pagos recurrentes
+  // Campos para facturas/boletas
+  requiresInvoice?: boolean;
+  invoiceDueDate?: Date; // Fecha límite para hacer la factura
+  invoiceStatus?: 'pending' | 'completed' | 'overdue';
+  invoiceCompletedDate?: Date;
 }
 
 export interface RecurringPayment {
@@ -17,6 +22,10 @@ export interface RecurringPayment {
   dayOfMonth: number;
   isActive: boolean;
   type: 'expense' | 'income';
+  // Campos para facturas/boletas
+  requiresInvoice?: boolean;
+  invoiceDueDaysBefore?: number; // Días antes del pago para hacer la factura
+  invoiceStatus?: 'pending' | 'completed' | 'overdue';
 }
 
 export interface MonthlyData {
@@ -75,4 +84,18 @@ export interface SharedExpenseBalance {
   netBalance: number; // positivo = Felipe debe a Camila, negativo = Camila debe a Felipe
   whoOwes: 'Felipe' | 'Camila' | 'balanced';
   amountOwed: number;
+}
+
+export interface InvoiceAlert {
+  id: string;
+  transactionId?: string;
+  recurringPaymentId?: string;
+  title: string;
+  description: string;
+  dueDate: Date;
+  status: 'pending' | 'completed' | 'overdue';
+  priority: 'low' | 'medium' | 'high';
+  type: 'invoice' | 'receipt';
+  amount: number;
+  completedDate?: Date;
 } 
