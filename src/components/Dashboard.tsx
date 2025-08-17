@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign } from 
 import FinancialChart from './FinancialChart';
 import TransactionList from './TransactionList';
 import CategoryBreakdown from './CategoryBreakdown';
+import MonthlyTimeline from './MonthlyTimeline';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -23,7 +24,7 @@ const Dashboard: React.FC = () => {
   }
 
   const summary = getFinancialSummary();
-  const { currentMonth: monthData, previousMonth, yearToDate } = summary;
+  const { currentMonth: monthData, previousMonth } = summary;
 
   const goToPreviousMonth = () => {
     const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
@@ -93,109 +94,124 @@ const Dashboard: React.FC = () => {
 
         {/* Resumen mensual */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="card">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Ingresos</p>
+                <p className="text-sm font-medium text-gray-600">Ingresos</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(monthData.totalIncome)}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                {React.createElement(getChangeIndicator(monthData.totalIncome, previousMonth.totalIncome).icon, {
-                  className: `w-6 h-6 ${getChangeIndicator(monthData.totalIncome, previousMonth.totalIncome).color}`
-                })}
+              <div className="bg-green-100 p-3 rounded-full">
+                <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              vs mes anterior: {formatCurrency(previousMonth.totalIncome)}
-            </p>
+            <div className="mt-4 flex items-center">
+              {(() => {
+                const indicator = getChangeIndicator(monthData.totalIncome, previousMonth.totalIncome);
+                return (
+                  <>
+                    <indicator.icon className={`w-4 h-4 ${indicator.color} mr-1`} />
+                    <span className="text-sm text-gray-600">
+                      {Math.abs(monthData.totalIncome - previousMonth.totalIncome) > 0 ? 
+                        `${formatCurrency(Math.abs(monthData.totalIncome - previousMonth.totalIncome))} vs mes anterior` : 
+                        'Sin cambios vs mes anterior'
+                      }
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
           </div>
 
-          <div className="card">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Gastos</p>
+                <p className="text-sm font-medium text-gray-600">Gastos</p>
                 <p className="text-2xl font-bold text-red-600">
                   {formatCurrency(monthData.totalExpenses)}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                {React.createElement(getChangeIndicator(monthData.totalExpenses, previousMonth.totalExpenses).icon, {
-                  className: `w-6 h-6 ${getChangeIndicator(monthData.totalExpenses, previousMonth.totalExpenses).color}`
-                })}
+              <div className="bg-red-100 p-3 rounded-full">
+                <TrendingDown className="w-6 h-6 text-red-600" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              vs mes anterior: {formatCurrency(previousMonth.totalExpenses)}
-            </p>
+            <div className="mt-4 flex items-center">
+              {(() => {
+                const indicator = getChangeIndicator(monthData.totalExpenses, previousMonth.totalExpenses);
+                return (
+                  <>
+                    <indicator.icon className={`w-4 h-4 ${indicator.color} mr-1`} />
+                    <span className="text-sm text-gray-600">
+                      {Math.abs(monthData.totalExpenses - previousMonth.totalExpenses) > 0 ? 
+                        `${formatCurrency(Math.abs(monthData.totalExpenses - previousMonth.totalExpenses))} vs mes anterior` : 
+                        'Sin cambios vs mes anterior'
+                      }
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
           </div>
 
-          <div className="card">
+          <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Balance</p>
+                <p className="text-sm font-medium text-gray-600">Balance</p>
                 <p className={`text-2xl font-bold ${getBalanceColor(monthData.balance)}`}>
                   {formatCurrency(monthData.balance)}
                 </p>
               </div>
-              <div className={`p-3 rounded-full ${monthData.balance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+              <div className={`p-3 rounded-full ${
+                monthData.balance > 0 ? 'bg-green-100' : monthData.balance < 0 ? 'bg-red-100' : 'bg-gray-100'
+              }`}>
                 <DollarSign className={`w-6 h-6 ${getBalanceColor(monthData.balance)}`} />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              vs mes anterior: {formatCurrency(previousMonth.balance)}
-            </p>
+            <div className="mt-4 flex items-center">
+              {(() => {
+                const indicator = getChangeIndicator(monthData.balance, previousMonth.balance);
+                return (
+                  <>
+                    <indicator.icon className={`w-4 h-4 ${indicator.color} mr-1`} />
+                    <span className="text-sm text-gray-600">
+                      {Math.abs(monthData.balance - previousMonth.balance) > 0 ? 
+                        `${formatCurrency(Math.abs(monthData.balance - previousMonth.balance))} vs mes anterior` : 
+                        'Sin cambios vs mes anterior'
+                      }
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
 
-        {/* Gráficos y análisis */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        {/* Línea de Tiempo Mensual */}
+        <div className="mb-8">
+          <MonthlyTimeline />
+        </div>
+
+        {/* Gráfico y desglose */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Tendencia Mensual
             </h3>
             <FinancialChart />
           </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Distribución por Categorías
             </h3>
             <CategoryBreakdown summary={summary} />
           </div>
         </div>
 
-        {/* Resumen anual */}
-        <div className="card mb-8">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Resumen del Año {currentMonth.getFullYear()}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Total Ingresos</p>
-              <p className="text-xl font-bold text-green-600">
-                {formatCurrency(yearToDate.totalIncome)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Total Gastos</p>
-              <p className="text-xl font-bold text-red-600">
-                {formatCurrency(yearToDate.totalExpenses)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-500">Balance Anual</p>
-              <p className={`text-xl font-bold ${getBalanceColor(yearToDate.balance)}`}>
-                {formatCurrency(yearToDate.balance)}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Lista de transacciones */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Transacciones del Mes
           </h3>
           <TransactionList transactions={monthData.transactions} />

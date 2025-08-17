@@ -259,11 +259,16 @@ export const supabaseStorage = {
 
     if (month) {
       const year = month.getFullYear();
-      const monthNum = month.getMonth() + 1;
-      const startDate = `${year}-${monthNum.toString().padStart(2, '0')}-01`;
-      const endDate = `${year}-${monthNum.toString().padStart(2, '0')}-31`;
+      const monthNum = month.getMonth(); // 0-based month
       
-      query = query.gte('date', startDate).lte('date', endDate);
+      // Crear fechas de inicio y fin del mes correctamente
+      const startDate = new Date(year, monthNum, 1);
+      const endDate = new Date(year, monthNum + 1, 0); // Último día del mes
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      query = query.gte('date', startDateStr).lte('date', endDateStr);
     }
 
     const { data, error } = await query;
