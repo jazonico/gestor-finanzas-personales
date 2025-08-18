@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { RecurringPayment } from '../types';
 import { useFinancialContext } from '../context/FinancialContext';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
-import { X } from 'lucide-react';
+import { X, FileText, Calendar } from 'lucide-react';
 
 interface RecurringPaymentFormProps {
   isOpen: boolean;
@@ -24,6 +24,10 @@ const RecurringPaymentForm: React.FC<RecurringPaymentFormProps> = ({
     amount: editingPayment?.amount || 0,
     dayOfMonth: editingPayment?.dayOfMonth || 1,
     isActive: editingPayment?.isActive ?? true,
+    // Campos de facturación
+    requiresInvoice: editingPayment?.requiresInvoice || false,
+    invoiceDueDaysBefore: editingPayment?.invoiceDueDaysBefore || 5,
+    invoiceStatus: editingPayment?.invoiceStatus || 'pending',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,6 +53,17 @@ const RecurringPaymentForm: React.FC<RecurringPaymentFormProps> = ({
       newErrors.dayOfMonth = 'El día debe estar entre 1 y 31';
     }
 
+    // Validación de facturación
+    if (formData.requiresInvoice) {
+      if (formData.invoiceDueDaysBefore < 0 || formData.invoiceDueDaysBefore > 30) {
+        newErrors.invoiceDueDaysBefore = 'Los días de anticipación deben estar entre 0 y 30';
+      }
+      
+      if (formData.invoiceDueDaysBefore >= formData.dayOfMonth) {
+        newErrors.invoiceDueDaysBefore = 'Los días de anticipación no pueden ser mayores o iguales al día del pago';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -67,6 +82,10 @@ const RecurringPaymentForm: React.FC<RecurringPaymentFormProps> = ({
       amount: Number(formData.amount),
       dayOfMonth: formData.dayOfMonth,
       isActive: formData.isActive,
+      // Campos de facturación
+      requiresInvoice: formData.requiresInvoice,
+      invoiceDueDaysBefore: formData.requiresInvoice ? formData.invoiceDueDaysBefore : undefined,
+      invoiceStatus: formData.requiresInvoice ? formData.invoiceStatus : undefined,
     };
 
     if (editingPayment) {
@@ -87,6 +106,9 @@ const RecurringPaymentForm: React.FC<RecurringPaymentFormProps> = ({
       amount: 0,
       dayOfMonth: 1,
       isActive: true,
+      requiresInvoice: false,
+      invoiceDueDaysBefore: 5,
+      invoiceStatus: 'pending',
     });
     setErrors({});
   };
@@ -238,6 +260,80 @@ const RecurringPaymentForm: React.FC<RecurringPaymentFormProps> = ({
             <p className="text-xs text-gray-500 mt-1">
               Los pagos activos se agregan automáticamente cada mes
             </p>
+          </div>
+
+          {/* Sección de Facturación */}
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <FileText className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-medium text-gray-900">Gestión de Facturas/Boletas</h3>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="requiresInvoice"
+                checked={formData.requiresInvoice}
+                onChange={(e) => setFormData({ ...formData, requiresInvoice: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+              />
+              <div>
+                <label htmlFor="requiresInvoice" className="text-sm font-medium text-gray-700">
+                  {formData.type === 'income' ? 'Requiere hacer factura/boleta cada mes' : 'Requiere comprobante de pago'}
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.type === 'income' 
+                    ? 'Se creará una alerta automática cada mes para hacer la factura antes del pago'
+                    : 'Se creará una alerta para obtener el comprobante de este pago recurrente'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {formData.requiresInvoice && (
+              <div className="mt-4 space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Días de anticipación para {formData.type === 'income' ? 'hacer la factura' : 'obtener comprobante'}
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={formData.invoiceDueDaysBefore}
+                      onChange={(e) => setFormData({ ...formData, invoiceDueDaysBefore: parseInt(e.target.value) || 0 })}
+                      className={`input-field w-20 ${errors.invoiceDueDaysBefore ? 'border-red-500' : ''}`}
+                    />
+                    <span className="text-sm text-gray-600">
+                      días antes del día {formData.dayOfMonth}
+                    </span>
+                  </div>
+                  {errors.invoiceDueDaysBefore && (
+                    <p className="text-red-500 text-xs mt-1">{errors.invoiceDueDaysBefore}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-1">
+                    📅 La alerta aparecerá el día {Math.max(1, formData.dayOfMonth - formData.invoiceDueDaysBefore)} de cada mes
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado actual del mes
+                  </label>
+                  <select
+                    value={formData.invoiceStatus}
+                    onChange={(e) => setFormData({ ...formData, invoiceStatus: e.target.value as 'pending' | 'completed' | 'overdue' })}
+                    className="input-field"
+                  >
+                    <option value="pending">📄 Pendiente - Aún no {formData.type === 'income' ? 'hecha' : 'obtenida'}</option>
+                    <option value="completed">✅ Completada - Ya {formData.type === 'income' ? 'hecha' : 'obtenida'}</option>
+                    <option value="overdue">⚠️ Vencida - Pasó la fecha límite</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Botones */}

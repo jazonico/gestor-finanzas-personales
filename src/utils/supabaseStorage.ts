@@ -11,6 +11,11 @@ const convertFromDbTransaction = (dbTransaction: any): Transaction => ({
   date: new Date(dbTransaction.date),
   isRecurring: dbTransaction.is_recurring,
   recurringDay: dbTransaction.recurring_day || undefined,
+  // Campos de facturación
+  requiresInvoice: dbTransaction.requires_invoice || false,
+  invoiceDueDate: dbTransaction.invoice_due_date ? new Date(dbTransaction.invoice_due_date) : undefined,
+  invoiceStatus: dbTransaction.invoice_status || undefined,
+  invoiceCompletedDate: dbTransaction.invoice_completed_date ? new Date(dbTransaction.invoice_completed_date) : undefined,
 });
 
 const convertToDbTransaction = (transaction: Omit<Transaction, 'id'>, userId: string) => ({
@@ -22,6 +27,11 @@ const convertToDbTransaction = (transaction: Omit<Transaction, 'id'>, userId: st
   date: transaction.date.toISOString().split('T')[0],
   is_recurring: transaction.isRecurring || false,
   recurring_day: transaction.recurringDay || null,
+  // Campos de facturación
+  requires_invoice: transaction.requiresInvoice || false,
+  invoice_due_date: transaction.invoiceDueDate ? transaction.invoiceDueDate.toISOString().split('T')[0] : null,
+  invoice_status: transaction.invoiceStatus || null,
+  invoice_completed_date: transaction.invoiceCompletedDate ? transaction.invoiceCompletedDate.toISOString().split('T')[0] : null,
 });
 
 const convertFromDbRecurringPayment = (dbPayment: any): RecurringPayment => ({
@@ -32,6 +42,10 @@ const convertFromDbRecurringPayment = (dbPayment: any): RecurringPayment => ({
   dayOfMonth: dbPayment.day_of_month,
   isActive: dbPayment.is_active,
   type: dbPayment.type,
+  // Campos de facturación
+  requiresInvoice: dbPayment.requires_invoice || false,
+  invoiceDueDaysBefore: dbPayment.invoice_due_days_before || undefined,
+  invoiceStatus: dbPayment.invoice_status || undefined,
 });
 
 const convertToDbRecurringPayment = (payment: Omit<RecurringPayment, 'id'>, userId: string) => ({
@@ -42,6 +56,10 @@ const convertToDbRecurringPayment = (payment: Omit<RecurringPayment, 'id'>, user
   day_of_month: payment.dayOfMonth,
   is_active: payment.isActive,
   type: payment.type,
+  // Campos de facturación
+  requires_invoice: payment.requiresInvoice || false,
+  invoice_due_days_before: payment.invoiceDueDaysBefore || null,
+  invoice_status: payment.invoiceStatus || null,
 });
 
 // Funciones de conversión para gastos compartidos
@@ -153,6 +171,10 @@ export const supabaseStorage = {
     if (updates.date) dbUpdates.date = updates.date.toISOString().split('T')[0];
     if (updates.isRecurring !== undefined) dbUpdates.is_recurring = updates.isRecurring;
     if (updates.recurringDay !== undefined) dbUpdates.recurring_day = updates.recurringDay;
+    if (updates.requiresInvoice !== undefined) dbUpdates.requires_invoice = updates.requiresInvoice;
+    if (updates.invoiceDueDate) dbUpdates.invoice_due_date = updates.invoiceDueDate.toISOString().split('T')[0];
+    if (updates.invoiceStatus !== undefined) dbUpdates.invoice_status = updates.invoiceStatus;
+    if (updates.invoiceCompletedDate) dbUpdates.invoice_completed_date = updates.invoiceCompletedDate.toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('transactions')
@@ -220,6 +242,9 @@ export const supabaseStorage = {
     if (updates.dayOfMonth !== undefined) dbUpdates.day_of_month = updates.dayOfMonth;
     if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
     if (updates.type) dbUpdates.type = updates.type;
+    if (updates.requiresInvoice !== undefined) dbUpdates.requires_invoice = updates.requiresInvoice;
+    if (updates.invoiceDueDaysBefore !== undefined) dbUpdates.invoice_due_days_before = updates.invoiceDueDaysBefore;
+    if (updates.invoiceStatus !== undefined) dbUpdates.invoice_status = updates.invoiceStatus;
 
     const { data, error } = await supabase
       .from('recurring_payments')

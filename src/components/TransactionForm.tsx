@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Transaction } from '../types';
 import { useFinancialContext } from '../context/FinancialContext';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/categories';
-import { X } from 'lucide-react';
+import { X, FileText, Calendar } from 'lucide-react';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -24,6 +24,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     description: editingTransaction?.description || '',
     date: editingTransaction?.date ? editingTransaction.date.toISOString().split('T')[0] : 
           new Date().toISOString().split('T')[0],
+    // Campos de facturación
+    requiresInvoice: editingTransaction?.requiresInvoice || false,
+    invoiceDueDate: editingTransaction?.invoiceDueDate ? 
+                   editingTransaction.invoiceDueDate.toISOString().split('T')[0] : '',
+    invoiceStatus: editingTransaction?.invoiceStatus || 'pending',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,6 +55,21 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       newErrors.date = 'La fecha es obligatoria';
     }
 
+    // Validación de facturación
+    if (formData.requiresInvoice && !formData.invoiceDueDate) {
+      newErrors.invoiceDueDate = 'La fecha límite para la factura es obligatoria';
+    }
+
+    // Validar que la fecha de factura sea antes o igual a la fecha de pago/ingreso
+    if (formData.requiresInvoice && formData.invoiceDueDate && formData.date) {
+      const invoiceDate = new Date(formData.invoiceDueDate);
+      const paymentDate = new Date(formData.date);
+      
+      if (invoiceDate > paymentDate) {
+        newErrors.invoiceDueDate = 'La fecha de factura debe ser anterior o igual a la fecha de pago';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -71,6 +91,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         amount: Number(formData.amount),
         description: formData.description,
         date: new Date(formData.date),
+        // Campos de facturación
+        requiresInvoice: formData.requiresInvoice,
+        invoiceDueDate: formData.requiresInvoice && formData.invoiceDueDate ? 
+                       new Date(formData.invoiceDueDate) : undefined,
+        invoiceStatus: formData.requiresInvoice ? formData.invoiceStatus : undefined,
       };
 
       if (editingTransaction) {
@@ -95,6 +120,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       amount: 0,
       description: '',
       date: new Date().toISOString().split('T')[0],
+      requiresInvoice: false,
+      invoiceDueDate: '',
+      invoiceStatus: 'pending',
     });
     setErrors({});
   };
@@ -236,6 +264,77 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             />
             {errors.date && (
               <p className="text-red-500 text-xs mt-1">{errors.date}</p>
+            )}
+          </div>
+
+          {/* Sección de Facturación */}
+          <div className="border-t border-gray-200 pt-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <FileText className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-medium text-gray-900">Gestión de Facturas/Boletas</h3>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="requiresInvoice"
+                checked={formData.requiresInvoice}
+                onChange={(e) => setFormData({ ...formData, requiresInvoice: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+                disabled={loading}
+              />
+              <div>
+                <label htmlFor="requiresInvoice" className="text-sm font-medium text-gray-700">
+                  {formData.type === 'income' ? 'Requiere hacer factura/boleta' : 'Requiere comprobante de pago'}
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.type === 'income' 
+                    ? 'Marca esta opción si necesitas hacer una factura o boleta para recibir este ingreso'
+                    : 'Marca esta opción si necesitas un comprobante específico para este gasto'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {formData.requiresInvoice && (
+              <div className="mt-4 space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Fecha límite para {formData.type === 'income' ? 'hacer la factura/boleta' : 'obtener comprobante'}
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.invoiceDueDate}
+                    onChange={(e) => setFormData({ ...formData, invoiceDueDate: e.target.value })}
+                    className={`input-field ${errors.invoiceDueDate ? 'border-red-500' : ''}`}
+                    disabled={loading}
+                    max={formData.date} // No puede ser después de la fecha de pago
+                  />
+                  {errors.invoiceDueDate && (
+                    <p className="text-red-500 text-xs mt-1">{errors.invoiceDueDate}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-1">
+                    Fecha en que debes {formData.type === 'income' ? 'hacer la factura' : 'obtener el comprobante'}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado actual
+                  </label>
+                  <select
+                    value={formData.invoiceStatus}
+                    onChange={(e) => setFormData({ ...formData, invoiceStatus: e.target.value as 'pending' | 'completed' | 'overdue' })}
+                    className="input-field"
+                    disabled={loading}
+                  >
+                    <option value="pending">📄 Pendiente - Aún no {formData.type === 'income' ? 'hecha' : 'obtenida'}</option>
+                    <option value="completed">✅ Completada - Ya {formData.type === 'income' ? 'hecha' : 'obtenida'}</option>
+                    <option value="overdue">⚠️ Vencida - Pasó la fecha límite</option>
+                  </select>
+                </div>
+              </div>
             )}
           </div>
 
