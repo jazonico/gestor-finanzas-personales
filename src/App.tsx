@@ -12,6 +12,7 @@ import SharedExpenses from './components/SharedExpenses';
 import IncomeMatrixBasic from './components/IncomeMatrixBasic';
 import IncomeMatrixMinimal from './components/IncomeMatrixMinimal';
 import TestComponent from './components/TestComponent';
+import UltraSimpleTest from './components/UltraSimpleTest';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
 import Debug from './debug';
@@ -73,32 +74,32 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Dashboard (Temporalmente deshabilitado para debug)</h1>
+          </div>
+        );
       case 'recurring':
         return (
-          <div className="min-h-screen bg-gray-50 p-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Pagos Recurrentes
-                </h1>
-                <p className="text-gray-600">
-                  Gestiona tus pagos automáticos mensuales como alquiler, tarjetas de crédito, servicios y salarios.
-                </p>
-              </div>
-              
-              <div className="card">
-                <RecurringPaymentsList />
-              </div>
-            </div>
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Pagos Recurrentes (Temporalmente deshabilitado para debug)</h1>
           </div>
         );
       case 'shared':
-        return <SharedExpenses />;
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Gastos Compartidos (Temporalmente deshabilitado para debug)</h1>
+          </div>
+        );
       case 'income-matrix':
-        return <TestComponent />; // componente de prueba básico
+        console.log('🔴 RENDERING income-matrix case');
+        return <UltraSimpleTest />; // componente ultra simple
       default:
-        return <Dashboard />;
+        return (
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h1>Dashboard (Temporalmente deshabilitado para debug)</h1>
+          </div>
+        );
     }
   };
 
@@ -149,42 +150,40 @@ function App() {
 
   // Mostrar aplicación principal si hay usuario autenticado
   return (
-    <FinancialProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header con información del usuario */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
-                  {user.email?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {user.user_metadata?.full_name || user.email}
-                </p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header con información del usuario */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-medium">
+                {user.email?.charAt(0).toUpperCase()}
+              </span>
             </div>
-            <button
-              onClick={() => {
-                supabase.auth.signOut();
-                setUser(null);
-                setLoading(true);
-              }}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 text-sm"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Cerrar Sesión</span>
-            </button>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {user.user_metadata?.full_name || user.email}
+              </p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+            </div>
           </div>
+          <button
+            onClick={() => {
+              supabase.auth.signOut();
+              setUser(null);
+              setLoading(true);
+            }}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
-
-        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-        {renderContent()}
       </div>
-    </FinancialProvider>
+
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      {renderContent()}
+    </div>
   );
 }
 

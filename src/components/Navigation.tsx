@@ -16,7 +16,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'recurring', label: 'Pagos Recurrentes', icon: RefreshCw },
     { id: 'shared', label: 'Gastos Compartidos', icon: Users },
-    { id: 'income-matrix', label: '🔴 TEST', icon: Grid3x3 },
+    { id: 'income-matrix', label: '🟢 ULTRA TEST', icon: Grid3x3 },
   ];
 
   return (
@@ -52,23 +52,11 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
               ))}
             </div>
 
-            {/* Botones de acción */}
+            {/* Botones de acción - temporalmente deshabilitados */}
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowTransactionForm(true)}
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Nueva Transacción</span>
-              </button>
-
-              <button
-                onClick={() => setShowRecurringForm(true)}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">Pago Recurrente</span>
-              </button>
+              <div className="text-sm text-gray-400">
+                (Botones deshabilitados para debug)
+              </div>
             </div>
           </div>
 
@@ -94,16 +82,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
         </div>
       </nav>
 
-      {/* Formularios modales */}
-      <TransactionForm
-        isOpen={showTransactionForm}
-        onClose={() => setShowTransactionForm(false)}
-      />
-
-      <RecurringPaymentForm
-        isOpen={showRecurringForm}
-        onClose={() => setShowRecurringForm(false)}
-      />
+      {/* Formularios modales - temporalmente deshabilitados */}
     </>
   );
 };
