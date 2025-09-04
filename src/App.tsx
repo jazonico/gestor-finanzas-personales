@@ -5,9 +5,10 @@ import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import RecurringPaymentsList from './components/RecurringPaymentsList';
 import SharedExpenses from './components/SharedExpenses';
-import IncomeMatrixPage from './components/IncomeMatrixPage';
-import IncomeMatrixDebug from './components/IncomeMatrixDebug';
-import IncomeMatrixSimple from './components/IncomeMatrixSimple';
+// Deshabilitado: versiones anteriores con store externo que causaban loops
+// import IncomeMatrixPage from './components/IncomeMatrixPage';
+// import IncomeMatrixDebug from './components/IncomeMatrixDebug';
+// import IncomeMatrixSimple from './components/IncomeMatrixSimple';
 import IncomeMatrixBasic from './components/IncomeMatrixBasic';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -93,7 +94,7 @@ function App() {
       case 'shared':
         return <SharedExpenses />;
       case 'income-matrix':
-        return <IncomeMatrixBasic />;
+        return <IncomeMatrixBasic />; // versión estable
       default:
         return <Dashboard />;
     }

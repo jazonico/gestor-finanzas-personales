@@ -119,6 +119,10 @@ export default function IncomeMatrixBasic() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Version banner */}
+      <div className="w-full bg-amber-100 text-amber-900 text-center text-xs py-1">
+        Income Matrix Basic v1 • sin store externo
+      </div>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
