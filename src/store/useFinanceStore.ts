@@ -6,6 +6,19 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { Category, IncomeMatrix, IncomeEvent, MonthlyTotals, CategoryTotals } from '../lib/finance/types';
 
+// Función para generar UUID simple si crypto.randomUUID no está disponible
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback UUID v4 simple
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // LocalStorage adapter simple para el store
 class SimpleLocalAdapter {
   private categoriesKey = 'finance_income_categories';
@@ -31,7 +44,7 @@ class SimpleLocalAdapter {
     const maxOrder = categories.length > 0 ? Math.max(...categories.map(c => c.order)) : -1;
     
     const newCategory: Category = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: name.trim(),
       order: maxOrder + 1,
       createdAt: new Date(),
@@ -119,28 +132,46 @@ class SimpleLocalAdapter {
   }
 
   async initialize(): Promise<void> {
-    const categories = await this.listCategories();
+    console.log('🚀 Inicializando SimpleLocalAdapter...');
     
-    if (categories.length === 0) {
-      // Crear datos de ejemplo
-      const seedCategories = ['Sueldo', 'Turnos', 'UMed', 'Arriendos', 'Dividendos'];
-      const currentYear = new Date().getFullYear();
+    try {
+      const categories = await this.listCategories();
+      console.log('📋 Categorías cargadas:', categories.length);
       
-      for (let i = 0; i < seedCategories.length; i++) {
-        await this.createCategory(seedCategories[i]);
-      }
-
-      const newCategories = await this.listCategories();
-      const currentMonth = new Date().getMonth() + 1;
-      
-      for (const category of newCategories) {
-        for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
-          const month = Math.max(1, currentMonth - monthOffset);
-          const randomAmount = Math.floor(Math.random() * 500000) + 100000;
-          
-          await this.setCell(currentYear, category.id, month, randomAmount);
+      if (categories.length === 0) {
+        console.log('🌱 Creando datos de ejemplo...');
+        
+        // Crear datos de ejemplo
+        const seedCategories = ['Sueldo', 'Turnos', 'UMed', 'Arriendos', 'Dividendos'];
+        const currentYear = new Date().getFullYear();
+        
+        for (let i = 0; i < seedCategories.length; i++) {
+          console.log(`➕ Creando categoría: ${seedCategories[i]}`);
+          await this.createCategory(seedCategories[i]);
         }
+
+        const newCategories = await this.listCategories();
+        console.log('✅ Categorías creadas:', newCategories.length);
+        
+        const currentMonth = new Date().getMonth() + 1;
+        
+        for (const category of newCategories) {
+          for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
+            const month = Math.max(1, currentMonth - monthOffset);
+            const randomAmount = Math.floor(Math.random() * 500000) + 100000;
+            
+            console.log(`💰 Agregando ${randomAmount} para ${category.name} en mes ${month}`);
+            await this.setCell(currentYear, category.id, month, randomAmount);
+          }
+        }
+        
+        console.log('✅ Datos de ejemplo creados exitosamente');
+      } else {
+        console.log('✅ Datos existentes encontrados');
       }
+    } catch (error) {
+      console.error('❌ Error en initialize:', error);
+      throw error;
     }
   }
 }
@@ -439,12 +470,21 @@ export const useFinanceStore = create<FinanceState>()(
         const { adapter, loadCategories, loadMatrix, selectedYear, setError } = get();
         
         try {
+          console.log('🔧 Inicializando store principal...');
           setError(null);
           
+          console.log('🔧 Inicializando adapter...');
           await adapter.initialize();
+          
+          console.log('🔧 Cargando categorías...');
           await loadCategories();
+          
+          console.log('🔧 Cargando matriz para año:', selectedYear);
           await loadMatrix(selectedYear);
+          
+          console.log('✅ Store inicializado correctamente');
         } catch (error) {
+          console.error('❌ Error en inicialización del store:', error);
           const message = error instanceof Error ? error.message : 'Error desconocido';
           setError(`Error al inicializar: ${message}`);
           throw error;
