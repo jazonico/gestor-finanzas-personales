@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { BarChart3, Plus, RefreshCw, Users, Grid3x3 } from 'lucide-react';
-import TransactionForm from './TransactionForm';
-import RecurringPaymentForm from './RecurringPaymentForm';
+import React from 'react';
+import { BarChart3, RefreshCw, Users, Grid3x3 } from 'lucide-react';
 
 interface NavigationProps {
   activeTab: string;
@@ -9,8 +7,6 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [showRecurringForm, setShowRecurringForm] = useState(false);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },

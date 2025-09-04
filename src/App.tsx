@@ -1,17 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FinancialProvider } from './context/FinancialContext';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import Navigation from './components/Navigation';
-import Dashboard from './components/Dashboard';
-import RecurringPaymentsList from './components/RecurringPaymentsList';
-import SharedExpenses from './components/SharedExpenses';
-// Deshabilitado: versiones anteriores con store externo que causaban loops
-// import IncomeMatrixPage from './components/IncomeMatrixPage';
-// import IncomeMatrixDebug from './components/IncomeMatrixDebug';
-// import IncomeMatrixSimple from './components/IncomeMatrixSimple';
-import IncomeMatrixBasic from './components/IncomeMatrixBasic';
-import IncomeMatrixMinimal from './components/IncomeMatrixMinimal';
-import TestComponent from './components/TestComponent';
 import UltraSimpleTest from './components/UltraSimpleTest';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';

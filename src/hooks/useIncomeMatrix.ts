@@ -47,10 +47,8 @@ export function useIncomeMatrix(year: number): UseIncomeMatrixReturn {
 
   // Cargar datos para el año seleccionado
   useEffect(() => {
-    if (year !== selectedYear) {
-      setYear(year);
-    }
-  }, [year, selectedYear, setYear]);
+    setYear(year);
+  }, [year, setYear]);
 
   // Obtener matriz del año actual
   const matrix = incomeMatrix[year] || {};
