@@ -31,7 +31,7 @@ export default function IncomeMatrixSimple() {
     };
 
     init();
-  }, [store]);
+  }, []); // Remover la dependencia 'store' que causaba el bucle infinito
 
   if (error) {
     return (

@@ -27,7 +27,7 @@ export default function IncomeMatrixPage() {
     if (!isInitialized) {
       initializeStore();
     }
-  }, [initialize, isInitialized]);
+  }, [isInitialized]); // Remover 'initialize' para evitar bucle infinito
 
   const handleYearSubmit = (e: React.FormEvent) => {
     e.preventDefault();

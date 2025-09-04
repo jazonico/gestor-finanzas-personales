@@ -92,7 +92,7 @@ function App() {
       case 'shared':
         return <SharedExpenses />;
       case 'income-matrix':
-        return <IncomeMatrixSimple />;
+        return <IncomeMatrixPage />;
       default:
         return <Dashboard />;
     }
