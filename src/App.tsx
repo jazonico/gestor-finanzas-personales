@@ -11,6 +11,7 @@ import SharedExpenses from './components/SharedExpenses';
 // import IncomeMatrixSimple from './components/IncomeMatrixSimple';
 import IncomeMatrixBasic from './components/IncomeMatrixBasic';
 import IncomeMatrixMinimal from './components/IncomeMatrixMinimal';
+import TestComponent from './components/TestComponent';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
 import Debug from './debug';
@@ -95,7 +96,7 @@ function App() {
       case 'shared':
         return <SharedExpenses />;
       case 'income-matrix':
-        return <IncomeMatrixMinimal />; // versión ultra simple
+        return <TestComponent />; // componente de prueba básico
       default:
         return <Dashboard />;
     }

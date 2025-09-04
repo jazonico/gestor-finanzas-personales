@@ -16,7 +16,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'recurring', label: 'Pagos Recurrentes', icon: RefreshCw },
     { id: 'shared', label: 'Gastos Compartidos', icon: Users },
-    { id: 'income-matrix', label: 'Matriz Ingresos (Minimal)', icon: Grid3x3 },
+    { id: 'income-matrix', label: '🔴 TEST', icon: Grid3x3 },
   ];
 
   return (
