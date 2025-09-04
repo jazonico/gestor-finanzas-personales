@@ -1,0 +1,52 @@
+{
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "typescript": "^5.0.0",
+    "tailwindcss": "^3.3.0",
+    "zustand": "^4.4.0",
+    "zod": "^3.22.0",
+    "lucide-react": "^0.300.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "vitest": "^1.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
+  },
+  "installationCommands": [
+    "npm install next react react-dom typescript",
+    "npm install tailwindcss autoprefixer postcss",
+    "npm install zustand zod lucide-react",
+    "npm install -D @types/node @types/react @types/react-dom",
+    "npm install -D vitest @testing-library/react @testing-library/jest-dom",
+    "npm install -D eslint eslint-config-next"
+  ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch"
+  },
+  "tailwindConfig": {
+    "content": [
+      "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+      "./components/**/*.{js,ts,jsx,tsx,mdx}",
+      "./app/**/*.{js,ts,jsx,tsx,mdx}"
+    ],
+    "theme": {
+      "extend": {}
+    },
+    "plugins": []
+  }
+}
