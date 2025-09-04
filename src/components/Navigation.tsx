@@ -1,5 +1,7 @@
-import React from 'react';
-import { BarChart3, RefreshCw, Users, Grid3x3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { BarChart3, Plus, RefreshCw, Users, Grid3x3 } from 'lucide-react';
+import TransactionForm from './TransactionForm';
+import RecurringPaymentForm from './RecurringPaymentForm';
 
 interface NavigationProps {
   activeTab: string;
@@ -7,12 +9,14 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showRecurringForm, setShowRecurringForm] = useState(false);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'recurring', label: 'Pagos Recurrentes', icon: RefreshCw },
     { id: 'shared', label: 'Gastos Compartidos', icon: Users },
-    { id: 'income-matrix', label: '🟢 ULTRA TEST', icon: Grid3x3 },
+    { id: 'income-matrix', label: 'Matriz Ingresos', icon: Grid3x3 },
   ];
 
   return (
@@ -48,11 +52,23 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
               ))}
             </div>
 
-            {/* Botones de acción - temporalmente deshabilitados */}
+            {/* Botones de acción */}
             <div className="flex items-center space-x-3">
-              <div className="text-sm text-gray-400">
-                (Botones deshabilitados para debug)
-              </div>
+              <button
+                onClick={() => setShowTransactionForm(true)}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Nueva Transacción</span>
+              </button>
+
+              <button
+                onClick={() => setShowRecurringForm(true)}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">Pago Recurrente</span>
+              </button>
             </div>
           </div>
 
@@ -78,7 +94,16 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }) => {
         </div>
       </nav>
 
-      {/* Formularios modales - temporalmente deshabilitados */}
+      {/* Formularios modales */}
+      <TransactionForm
+        isOpen={showTransactionForm}
+        onClose={() => setShowTransactionForm(false)}
+      />
+
+      <RecurringPaymentForm
+        isOpen={showRecurringForm}
+        onClose={() => setShowRecurringForm(false)}
+      />
     </>
   );
 };
