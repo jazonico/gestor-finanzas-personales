@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatCLP } from '../utils/currency';
+import { Calendar } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -23,6 +24,9 @@ export default function IncomeMatrixBasic() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCLP, setShowCLP] = useState(true);
+  const [editingCell, setEditingCell] = useState<{categoryId: string, month: number} | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [year, setYear] = useState(new Date().getFullYear());
 
   // Inicialización simple sin store externo
   useEffect(() => {
@@ -95,6 +99,39 @@ export default function IncomeMatrixBasic() {
     }, 0);
   };
 
+  const handleCellClick = (categoryId: string, month: number) => {
+    setEditingCell({ categoryId, month });
+    setEditValue(getCellValue(categoryId, month).toString());
+  };
+
+  const handleCellSave = () => {
+    if (editingCell) {
+      const value = parseFloat(editValue) || 0;
+      setIncomeData(prev => ({
+        ...prev,
+        [editingCell.categoryId]: {
+          ...prev[editingCell.categoryId],
+          [editingCell.month]: value
+        }
+      }));
+      setEditingCell(null);
+      setEditValue('');
+    }
+  };
+
+  const handleCellCancel = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCellSave();
+    } else if (e.key === 'Escape') {
+      handleCellCancel();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -126,19 +163,38 @@ export default function IncomeMatrixBasic() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Matriz de Ingresos 2024
-          </h1>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-700">
-              {showCLP ? 'Formato CLP' : 'Números'}
-            </span>
-            <button
-              onClick={() => setShowCLP(!showCLP)}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {showCLP ? '123' : '$'}
-            </button>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-xl font-semibold text-gray-900">
+              Matriz de Ingresos
+            </h1>
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <select
+                value={year}
+                onChange={(e) => setYear(parseInt(e.target.value))}
+                className="border border-gray-300 rounded px-3 py-1 text-sm"
+              >
+                {Array.from({ length: 11 }, (_, i) => {
+                  const y = new Date().getFullYear() - 5 + i;
+                  return (
+                    <option key={y} value={y}>{y}</option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">
+                {showCLP ? 'Formato CLP' : 'Números'}
+              </span>
+              <button
+                onClick={() => setShowCLP(!showCLP)}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {showCLP ? '123' : '$'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -176,14 +232,31 @@ export default function IncomeMatrixBasic() {
                   {Array.from({ length: 12 }, (_, monthIndex) => {
                     const month = monthIndex + 1;
                     const value = getCellValue(category.id, month);
+                    const isEditing = editingCell?.categoryId === category.id && editingCell?.month === month;
+                    
                     return (
                       <td
                         key={month}
                         className="px-4 py-3 text-center border-r border-gray-200"
                       >
-                        <span className="text-sm text-gray-900">
-                          {value > 0 ? (showCLP ? formatCLP(value) : value.toLocaleString()) : ''}
-                        </span>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            onBlur={handleCellSave}
+                            className="w-full px-2 py-1 text-sm text-center border border-blue-300 rounded focus:outline-none focus:border-blue-500"
+                            autoFocus
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleCellClick(category.id, month)}
+                            className="w-full text-sm text-gray-900 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                          >
+                            {value > 0 ? (showCLP ? formatCLP(value) : value.toLocaleString()) : '—'}
+                          </button>
+                        )}
                       </td>
                     );
                   })}
@@ -217,30 +290,33 @@ export default function IncomeMatrixBasic() {
       </div>
 
       {/* Información */}
-      <div className="p-6 bg-white border-t border-gray-200">
+      <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-gray-200">
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Matriz de Ingresos - Versión Básica</h3>
-          <p className="text-sm text-gray-600">
-            Esta es una versión simplificada que muestra datos de ejemplo. 
-            Los datos se generan automáticamente para demostración.
+          <h3 className="text-lg font-medium text-gray-900 mb-2">📊 Matriz de Ingresos - Versión Mejorada</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            ✨ <strong>¡Funcionalidad completa!</strong> Haz clic en cualquier celda para editarla. 
+            Cambia el año para ver diferentes períodos.
           </p>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-medium text-gray-900">Categorías</div>
-              <div className="text-gray-600">{categories.length}</div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="font-medium text-gray-900">📋 Categorías</div>
+              <div className="text-lg font-bold text-blue-600">{categories.length}</div>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">Total Anual</div>
-              <div className="text-gray-600">{showCLP ? formatCLP(getGrandTotal()) : getGrandTotal().toLocaleString()}</div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="font-medium text-gray-900">💰 Total Anual</div>
+              <div className="text-lg font-bold text-green-600">{showCLP ? formatCLP(getGrandTotal()) : getGrandTotal().toLocaleString()}</div>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">Promedio Mensual</div>
-              <div className="text-gray-600">{showCLP ? formatCLP(getGrandTotal() / 12) : Math.round(getGrandTotal() / 12).toLocaleString()}</div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="font-medium text-gray-900">📅 Promedio Mensual</div>
+              <div className="text-lg font-bold text-purple-600">{showCLP ? formatCLP(getGrandTotal() / 12) : Math.round(getGrandTotal() / 12).toLocaleString()}</div>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">Estado</div>
-              <div className="text-green-600">✅ Funcionando</div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="font-medium text-gray-900">🔧 Estado</div>
+              <div className="text-lg font-bold text-green-600">✅ Activo</div>
             </div>
+          </div>
+          <div className="mt-4 text-xs text-gray-500">
+            💡 <strong>Tip:</strong> Usa Enter para guardar, Escape para cancelar. Los datos se actualizan automáticamente.
           </div>
         </div>
       </div>

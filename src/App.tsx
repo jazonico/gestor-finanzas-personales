@@ -5,7 +5,7 @@ import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import RecurringPaymentsList from './components/RecurringPaymentsList';
 import SharedExpenses from './components/SharedExpenses';
-import IncomeMatrixPage from './components/IncomeMatrixPage';
+import IncomeMatrixBasic from './components/IncomeMatrixBasic';
 import Auth from './components/Auth';
 import LoadingSpinner from './components/LoadingSpinner';
 import Debug from './debug';
@@ -90,7 +90,7 @@ function App() {
       case 'shared':
         return <SharedExpenses />;
       case 'income-matrix':
-        return <IncomeMatrixPage />;
+        return <IncomeMatrixBasic />;
       default:
         return <Dashboard />;
     }
