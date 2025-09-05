@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatCLP } from '../utils/currency';
-import { Calendar } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -27,6 +27,10 @@ export default function IncomeMatrixBasic() {
   const [editingCell, setEditingCell] = useState<{categoryId: string, month: number} | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [year, setYear] = useState(new Date().getFullYear());
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState<string>('');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Inicialización simple sin store externo
   useEffect(() => {
@@ -132,6 +136,78 @@ export default function IncomeMatrixBasic() {
     }
   };
 
+  // Funciones para gestión de categorías
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const addCategory = () => {
+    if (newCategoryName.trim()) {
+      const newCategory: Category = {
+        id: generateId(),
+        name: newCategoryName.trim(),
+        order: categories.length
+      };
+      setCategories(prev => [...prev, newCategory]);
+      setIncomeData(prev => ({
+        ...prev,
+        [newCategory.id]: {}
+      }));
+      setNewCategoryName('');
+      setShowAddCategory(false);
+    }
+  };
+
+  const startEditCategory = (categoryId: string, currentName: string) => {
+    setEditingCategory(categoryId);
+    setEditCategoryName(currentName);
+  };
+
+  const saveEditCategory = () => {
+    if (editingCategory && editCategoryName.trim()) {
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.id === editingCategory
+            ? { ...cat, name: editCategoryName.trim() }
+            : cat
+        )
+      );
+      setEditingCategory(null);
+      setEditCategoryName('');
+    }
+  };
+
+  const cancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryName('');
+  };
+
+  const deleteCategory = (categoryId: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría? Se perderán todos los datos asociados.')) {
+      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+      setIncomeData(prev => {
+        const newData = { ...prev };
+        delete newData[categoryId];
+        return newData;
+      });
+    }
+  };
+
+  const handleCategoryKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (showAddCategory) {
+        addCategory();
+      } else if (editingCategory) {
+        saveEditCategory();
+      }
+    } else if (e.key === 'Escape') {
+      if (showAddCategory) {
+        setShowAddCategory(false);
+        setNewCategoryName('');
+      } else if (editingCategory) {
+        cancelEditCategory();
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -184,6 +260,13 @@ export default function IncomeMatrixBasic() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setShowAddCategory(true)}
+              className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Categoría</span>
+            </button>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">
                 {showCLP ? 'Formato CLP' : 'Números'}
@@ -225,9 +308,55 @@ export default function IncomeMatrixBasic() {
               {categories.map((category, index) => (
                 <tr key={category.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   <td className="sticky left-0 bg-inherit px-6 py-3 border-r border-gray-200">
-                    <span className="text-sm font-medium text-gray-900">
-                      {category.name}
-                    </span>
+                    <div className="flex items-center justify-between group">
+                      {editingCategory === category.id ? (
+                        <div className="flex items-center space-x-2 flex-1">
+                          <input
+                            type="text"
+                            value={editCategoryName}
+                            onChange={(e) => setEditCategoryName(e.target.value)}
+                            onKeyPress={handleCategoryKeyPress}
+                            onBlur={saveEditCategory}
+                            className="flex-1 px-2 py-1 text-sm border border-blue-300 rounded focus:outline-none focus:border-blue-500"
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveEditCategory}
+                            className="p-1 text-green-600 hover:bg-green-100 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={cancelEditCategory}
+                            className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-sm font-medium text-gray-900 flex-1">
+                            {category.name}
+                          </span>
+                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => startEditCategory(category.id, category.name)}
+                              className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                              title="Editar categoría"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => deleteCategory(category.id)}
+                              className="p-1 text-red-600 hover:bg-red-100 rounded"
+                              title="Eliminar categoría"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </td>
                   {Array.from({ length: 12 }, (_, monthIndex) => {
                     const month = monthIndex + 1;
@@ -266,6 +395,50 @@ export default function IncomeMatrixBasic() {
                 </tr>
               ))}
               
+              {/* Fila para agregar nueva categoría */}
+              {showAddCategory && (
+                <tr className="bg-green-50 border-2 border-green-200">
+                  <td className="sticky left-0 bg-green-50 px-6 py-3 border-r border-green-200">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyPress={handleCategoryKeyPress}
+                        placeholder="Nombre de la nueva categoría..."
+                        className="flex-1 px-2 py-1 text-sm border border-green-300 rounded focus:outline-none focus:border-green-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={addCategory}
+                        className="p-1 text-green-600 hover:bg-green-200 rounded"
+                        title="Guardar categoría"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddCategory(false);
+                          setNewCategoryName('');
+                        }}
+                        className="p-1 text-red-600 hover:bg-red-200 rounded"
+                        title="Cancelar"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                  {Array.from({ length: 12 }, (_, monthIndex) => (
+                    <td key={monthIndex} className="px-4 py-3 border-r border-green-200 bg-green-50">
+                      <span className="text-xs text-green-600">—</span>
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 bg-green-50 text-center">
+                    <span className="text-xs text-green-600">Nueva</span>
+                  </td>
+                </tr>
+              )}
+              
               {/* Fila de totales */}
               <tr className="bg-blue-50 border-t-2 border-blue-200 font-medium">
                 <td className="sticky left-0 bg-blue-50 px-6 py-3 text-sm font-semibold text-gray-900 border-r border-blue-200">
@@ -292,10 +465,10 @@ export default function IncomeMatrixBasic() {
       {/* Información */}
       <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-gray-200">
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">📊 Matriz de Ingresos - Versión Mejorada</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">📊 Matriz de Ingresos - Versión Completa</h3>
           <p className="text-sm text-gray-600 mb-4">
             ✨ <strong>¡Funcionalidad completa!</strong> Haz clic en cualquier celda para editarla. 
-            Cambia el año para ver diferentes períodos.
+            Gestiona categorías con hover sobre los nombres. Cambia el año para ver diferentes períodos.
           </p>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -315,8 +488,9 @@ export default function IncomeMatrixBasic() {
               <div className="text-lg font-bold text-green-600">✅ Activo</div>
             </div>
           </div>
-          <div className="mt-4 text-xs text-gray-500">
-            💡 <strong>Tip:</strong> Usa Enter para guardar, Escape para cancelar. Los datos se actualizan automáticamente.
+          <div className="mt-4 text-xs text-gray-500 space-y-1">
+            <div>💡 <strong>Celdas:</strong> Clic para editar → Enter/Escape para guardar/cancelar</div>
+            <div>🏷️ <strong>Categorías:</strong> Hover sobre nombres → Editar/Eliminar • Botón verde para agregar</div>
           </div>
         </div>
       </div>
