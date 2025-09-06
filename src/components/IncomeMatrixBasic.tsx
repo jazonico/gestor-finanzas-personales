@@ -31,14 +31,30 @@ export default function IncomeMatrixBasic() {
   const [editCategoryName, setEditCategoryName] = useState<string>('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Inicialización simple sin store externo
-  useEffect(() => {
-    const initializeData = () => {
-      try {
-        console.log('🚀 Inicializando Income Matrix Basic...');
-        
-        // Crear categorías de ejemplo
+  // Claves para LocalStorage
+  const STORAGE_KEYS = {
+    categories: `income_categories_${year}`,
+    data: `income_data_${year}`
+  };
+
+  // Cargar datos desde LocalStorage
+  const loadData = () => {
+    try {
+      console.log(`🚀 Cargando datos para año ${year}...`);
+      
+      // Cargar categorías
+      const savedCategories = localStorage.getItem(STORAGE_KEYS.categories);
+      const savedData = localStorage.getItem(STORAGE_KEYS.data);
+      
+      if (savedCategories && savedData) {
+        // Datos existentes
+        setCategories(JSON.parse(savedCategories));
+        setIncomeData(JSON.parse(savedData));
+        console.log('✅ Datos cargados desde LocalStorage');
+      } else {
+        // Datos de ejemplo para primera vez
         const exampleCategories: Category[] = [
           { id: '1', name: 'Sueldo', order: 0 },
           { id: '2', name: 'Turnos', order: 1 },
@@ -47,7 +63,6 @@ export default function IncomeMatrixBasic() {
           { id: '5', name: 'Dividendos', order: 4 },
         ];
 
-        // Crear datos de ejemplo
         const exampleData: IncomeData = {};
         const currentMonth = new Date().getMonth() + 1;
 
@@ -64,18 +79,42 @@ export default function IncomeMatrixBasic() {
 
         setCategories(exampleCategories);
         setIncomeData(exampleData);
-        setIsLoading(false);
         
-        console.log('✅ Income Matrix Basic inicializado');
-      } catch (err) {
-        console.error('❌ Error en inicialización:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
-        setIsLoading(false);
+        // Guardar datos iniciales
+        localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(exampleCategories));
+        localStorage.setItem(STORAGE_KEYS.data, JSON.stringify(exampleData));
+        
+        console.log('✅ Datos iniciales creados y guardados');
       }
-    };
+      
+      setIsLoading(false);
+    } catch (err) {
+      console.error('❌ Error cargando datos:', err);
+      setError(err instanceof Error ? err.message : 'Error cargando datos');
+      setIsLoading(false);
+    }
+  };
 
-    initializeData();
-  }, []); // Sin dependencias para evitar bucles
+  // Guardar datos en LocalStorage
+  const saveData = (newCategories?: Category[], newData?: IncomeData) => {
+    try {
+      const categoriesToSave = newCategories || categories;
+      const dataToSave = newData || incomeData;
+      
+      localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(categoriesToSave));
+      localStorage.setItem(STORAGE_KEYS.data, JSON.stringify(dataToSave));
+      
+      setLastSaved(new Date());
+      console.log('💾 Datos guardados en LocalStorage');
+    } catch (err) {
+      console.error('❌ Error guardando datos:', err);
+    }
+  };
+
+  // Inicialización y cambio de año
+  useEffect(() => {
+    loadData();
+  }, [year]); // Recargar cuando cambie el año
 
   const months = [
     'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -111,13 +150,16 @@ export default function IncomeMatrixBasic() {
   const handleCellSave = () => {
     if (editingCell) {
       const value = parseFloat(editValue) || 0;
-      setIncomeData(prev => ({
-        ...prev,
+      const newData = {
+        ...incomeData,
         [editingCell.categoryId]: {
-          ...prev[editingCell.categoryId],
+          ...incomeData[editingCell.categoryId],
           [editingCell.month]: value
         }
-      }));
+      };
+      
+      setIncomeData(newData);
+      saveData(categories, newData); // Guardar automáticamente
       setEditingCell(null);
       setEditValue('');
     }
@@ -146,11 +188,15 @@ export default function IncomeMatrixBasic() {
         name: newCategoryName.trim(),
         order: categories.length
       };
-      setCategories(prev => [...prev, newCategory]);
-      setIncomeData(prev => ({
-        ...prev,
+      const newCategories = [...categories, newCategory];
+      const newData = {
+        ...incomeData,
         [newCategory.id]: {}
-      }));
+      };
+      
+      setCategories(newCategories);
+      setIncomeData(newData);
+      saveData(newCategories, newData); // Guardar automáticamente
       setNewCategoryName('');
       setShowAddCategory(false);
     }
@@ -163,13 +209,14 @@ export default function IncomeMatrixBasic() {
 
   const saveEditCategory = () => {
     if (editingCategory && editCategoryName.trim()) {
-      setCategories(prev =>
-        prev.map(cat =>
-          cat.id === editingCategory
-            ? { ...cat, name: editCategoryName.trim() }
-            : cat
-        )
+      const newCategories = categories.map(cat =>
+        cat.id === editingCategory
+          ? { ...cat, name: editCategoryName.trim() }
+          : cat
       );
+      
+      setCategories(newCategories);
+      saveData(newCategories, incomeData); // Guardar automáticamente
       setEditingCategory(null);
       setEditCategoryName('');
     }
@@ -182,12 +229,13 @@ export default function IncomeMatrixBasic() {
 
   const deleteCategory = (categoryId: string) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta categoría? Se perderán todos los datos asociados.')) {
-      setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-      setIncomeData(prev => {
-        const newData = { ...prev };
-        delete newData[categoryId];
-        return newData;
-      });
+      const newCategories = categories.filter(cat => cat.id !== categoryId);
+      const newData = { ...incomeData };
+      delete newData[categoryId];
+      
+      setCategories(newCategories);
+      setIncomeData(newData);
+      saveData(newCategories, newData); // Guardar automáticamente
     }
   };
 
@@ -267,6 +315,13 @@ export default function IncomeMatrixBasic() {
               <Plus className="w-4 h-4" />
               <span>Nueva Categoría</span>
             </button>
+            
+            {lastSaved && (
+              <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                💾 Guardado {lastSaved.toLocaleTimeString()}
+              </div>
+            )}
+            
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">
                 {showCLP ? 'Formato CLP' : 'Números'}
@@ -467,8 +522,9 @@ export default function IncomeMatrixBasic() {
         <div className="max-w-4xl mx-auto text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">📊 Matriz de Ingresos - Versión Completa</h3>
           <p className="text-sm text-gray-600 mb-4">
-            ✨ <strong>¡Funcionalidad completa!</strong> Haz clic en cualquier celda para editarla. 
-            Gestiona categorías con hover sobre los nombres. Cambia el año para ver diferentes períodos.
+            ✨ <strong>¡Funcionalidad completa con persistencia!</strong> Todos los cambios se guardan automáticamente. 
+            Haz clic en cualquier celda para editarla. Gestiona categorías con hover sobre los nombres. 
+            Cambia el año para ver diferentes períodos.
           </p>
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="bg-white rounded-lg p-3 shadow-sm">
@@ -491,6 +547,7 @@ export default function IncomeMatrixBasic() {
           <div className="mt-4 text-xs text-gray-500 space-y-1">
             <div>💡 <strong>Celdas:</strong> Clic para editar → Enter/Escape para guardar/cancelar</div>
             <div>🏷️ <strong>Categorías:</strong> Hover sobre nombres → Editar/Eliminar • Botón verde para agregar</div>
+            <div>💾 <strong>Persistencia:</strong> Todos los cambios se guardan automáticamente en tu navegador</div>
           </div>
         </div>
       </div>
